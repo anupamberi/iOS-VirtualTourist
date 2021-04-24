@@ -20,12 +20,13 @@ class PhotoAlbumViewController: UIViewController {
 
   var fetchedResultsController: NSFetchedResultsController<Photo>!
 
+  var blockOperation = BlockOperation()
+
   override func viewDidLoad() {
     super.viewDidLoad()
     setUpFetchedResultsController()
     // create annotation from pin lat, lon
     showPin()
-    print(fetchedResultsController.fetchedObjects?.count)
   }
 
   override func viewWillAppear(_ animated: Bool) {
@@ -82,54 +83,62 @@ class PhotoAlbumViewController: UIViewController {
     }
     // Set a random page number from which photos to fetch so as to avoid having same photos repeated
     let photosPageToFetch = Int.random(in: Int(pin.page)...Int(pin.pages))
-    DispatchQueue.global(qos: .userInteractive).async {
-      FlickrClient.getPhotosDataForLocation(
-        latitude: self.pin.latitude,
-        longitude: self.pin.longitude,
-        fetchPhotosOnPage: photosPageToFetch
-      ) { photosData, page, pages, _ in
-        print("Total photos refetched \(photosData.count)")
-        // Set the current page and total pages of the photos to be displayed
-        self.pin.page = Int16(page)
-        self.pin.pages = Int16(pages)
-        // Add photos from page
-        for photoData in photosData {
-          let photoDownloadURL = FlickrClient.getPhotoImageURL(
-            photoServerId: photoData.server,
-            photoId: photoData.id,
-            photoSecret: photoData.secret)
+    FlickrClient.getPhotosDataForLocation(
+      latitude: self.pin.latitude,
+      longitude: self.pin.longitude,
+      fetchPhotosOnPage: photosPageToFetch
+    ) { photosData, page, pages, _ in
+      // Set the current page and total pages of the photos to be displayed
+      self.pin.page = Int16(page)
+      self.pin.pages = Int16(pages)
+      // Add photos from page
+      for photoData in photosData {
+        let photoDownloadURL = FlickrClient.getPhotoImageURL(
+          photoServerId: photoData.server,
+          photoId: photoData.id,
+          photoSecret: photoData.secret)
 
-          let photoForPin = Photo(context: self.dataController.viewContext)
-          photoForPin.createdAt = Date()
-          photoForPin.downloadedImageURL = photoDownloadURL
-          photoForPin.downloadedImage = nil
-          photoForPin.pin = self.pin
-        }
-        try? self.dataController.viewContext.save()
-        self.photosView.reloadData()
+        let photoForPin = Photo(context: self.dataController.viewContext)
+        photoForPin.createdAt = Date()
+        photoForPin.downloadedImageURL = photoDownloadURL
+        photoForPin.downloadedImage = nil
+        photoForPin.pin = self.pin
       }
+      try? self.dataController.viewContext.save()
+      self.photosView.reloadData()
     }
   }
 }
 
 // MARK: - Delegate for fetched results
 extension PhotoAlbumViewController: NSFetchedResultsControllerDelegate {
+  func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+    blockOperation = BlockOperation()
+  }
+
   func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
     guard let indexPath = indexPath else { return }
     guard let newIndexPath = newIndexPath else { return }
     switch type {
     case .insert:
-      print("insert")
-      self.photosView.insertItems(at: [newIndexPath])
+      blockOperation.addExecutionBlock {
+        DispatchQueue.main.async {
+          self.photosView.insertItems(at: [newIndexPath])
+        }
+      }
     case .delete:
-      print("delete")
-      self.photosView.deleteItems(at: [indexPath])
+      blockOperation.addExecutionBlock {
+        DispatchQueue.main.async {
+          self.photosView.deleteItems(at: [indexPath])
+        }
+      }
     case .update:
-      print("Update \(indexPath.row)")
-      self.photosView.reloadItems(at: [indexPath])
-    case .move:
-      photosView.moveItem(at: indexPath, to: newIndexPath)
-    @unknown default:
+      blockOperation.addExecutionBlock {
+        DispatchQueue.main.async {
+          self.photosView.reloadItems(at: [indexPath])
+        }
+      }
+    default:
       fatalError("Invalid change type")
     }
   }
@@ -146,6 +155,10 @@ extension PhotoAlbumViewController: NSFetchedResultsControllerDelegate {
     @unknown default:
       fatalError("Unknown change type")
     }
+  }
+
+  func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+    photosView.performBatchUpdates( { self.blockOperation.start() } , completion: nil)
   }
 }
 
