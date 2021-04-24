@@ -138,7 +138,33 @@ class TravelLocationsMapViewController: UIViewController {
     newPin.createdAt = Date()
     newPin.latitude = annotationToSave.coordinate.latitude
     newPin.longitude = annotationToSave.coordinate.longitude
-    dataController.saveContext()
+    // Add photos
+    addPinPhotos(pin: newPin)
+  }
+
+  func addPinPhotos(pin: Pin) {
+    FlickrClient.getPhotosDataForLocation(
+      latitude: pin.latitude,
+      longitude: pin.longitude
+    ) { photosData, page, pages, _ in
+      // Set the current page and total pages of the photos to be displayed
+      pin.page = Int16(page)
+      pin.pages = Int16(pages)
+      // Add photos from page
+      for photoData in photosData {
+        let photoDownloadURL = FlickrClient.getPhotoImageURL(
+          photoServerId: photoData.server,
+          photoId: photoData.id,
+          photoSecret: photoData.secret)
+
+        let photoForPin = Photo(context: self.dataController.viewContext)
+        photoForPin.createdAt = Date()
+        photoForPin.downloadedImageURL = photoDownloadURL
+        photoForPin.downloadedImage = nil
+        photoForPin.pin = pin
+      }
+      self.dataController.saveContext()
+    }
   }
 }
 
@@ -156,11 +182,54 @@ extension TravelLocationsMapViewController: MKMapViewDelegate {
     ]
     UserDefaults.standard.set(lastShownRegion, forKey: "lastShownRegion")
   }
-}
 
-// MARK: - NSFetchedResultsControllerDelegate
-extension TravelLocationsMapViewController: NSFetchedResultsControllerDelegate {
-  func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
-    print(fetchedResultsController.fetchedObjects)
+  func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
+    guard let annotation = view.annotation else { return }
+    fetchPinFromAnnotation(annotation: annotation) { pin in
+      if let fetchedPin = pin {
+        print(fetchedPin.latitude)
+        print(fetchedPin.longitude)
+        let photoAlbumViewController = self.storyboard?.instantiateViewController(identifier: "PhotoAlbumViewController") as! PhotoAlbumViewController
+        photoAlbumViewController.pin = fetchedPin
+        photoAlbumViewController.dataController = self.dataController
+        self.navigationController?.pushViewController(photoAlbumViewController, animated: true)
+      }
+    }
+  }
+
+  func fetchPinFromAnnotation(annotation: MKAnnotation, completion: @escaping (Pin?) -> Void) {
+    let pinFetchRequest: NSFetchRequest<Pin> = Pin.fetchRequest()
+    let latitudeNumber = NSNumber(value: annotation.coordinate.latitude)
+    let longitudeNumber = NSNumber(value: annotation.coordinate.longitude)
+
+    let latitudePredicate = NSPredicate(format: "latitude == %@", latitudeNumber as CVarArg)
+    let longtitudePredicate = NSPredicate(format: "longitude == %@", longitudeNumber as CVarArg)
+
+    let latLongPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [latitudePredicate, longtitudePredicate])
+    pinFetchRequest.predicate = latLongPredicate
+    let sortDescriptor = NSSortDescriptor(key: "createdAt", ascending: true)
+    pinFetchRequest.sortDescriptors = [sortDescriptor]
+
+    do {
+      let fetchedPins = try dataController.viewContext.fetch(pinFetchRequest)
+      completion(fetchedPins.first)
+    } catch {
+      completion(nil)
+    }
+  }
+
+  func fetchPhotosForPin(referencePin: Pin, completion: @escaping ([Photo]?) -> Void) {
+    let photosRequest: NSFetchRequest<Photo> = Photo.fetchRequest()
+    let predicate = NSPredicate(format: "pin == %@", referencePin)
+    photosRequest.predicate = predicate
+    let sortDescriptor = NSSortDescriptor(key: "createdAt", ascending: true)
+    photosRequest.sortDescriptors = [sortDescriptor]
+
+    do {
+      let fetchedPhotosForPin = try dataController.viewContext.fetch(photosRequest)
+      completion(fetchedPhotosForPin)
+    } catch {
+      completion(nil)
+    }
   }
 }
