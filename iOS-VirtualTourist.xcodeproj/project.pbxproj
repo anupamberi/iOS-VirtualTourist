@@ -34,8 +34,8 @@
 		1E72FE2C262C18AE00ED7DE1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1E72FE72262C261800ED7DE1 /* DataController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataController.swift; sourceTree = "<group>"; };
 		1E72FEBA262CD54B00ED7DE1 /* VirtualTourist.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = VirtualTourist.xcdatamodel; sourceTree = "<group>"; };
-		1E72FEBF262E0DFF00ED7DE1 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = ../../testCD/testCD/AppDelegate.swift; sourceTree = "<group>"; };
-		1E72FEC7262E0E1600ED7DE1 /* SceneDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = SceneDelegate.swift; path = ../../testCD/testCD/SceneDelegate.swift; sourceTree = "<group>"; };
+		1E72FEBF262E0DFF00ED7DE1 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		1E72FEC7262E0E1600ED7DE1 /* SceneDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		1E72FEDF2630BC9C00ED7DE1 /* FlickrClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlickrClient.swift; sourceTree = "<group>"; };
 		1E72FEE72632F82000ED7DE1 /* URLUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLUtil.swift; sourceTree = "<group>"; };
 		1E72FEED263305A000ED7DE1 /* PhotoStatisticsData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoStatisticsData.swift; sourceTree = "<group>"; };
@@ -78,7 +78,6 @@
 			children = (
 				1E72FEC7262E0E1600ED7DE1 /* SceneDelegate.swift */,
 				1E72FEBF262E0DFF00ED7DE1 /* AppDelegate.swift */,
-				1E72FE59262C197B00ED7DE1 /* Views */,
 				1E72FE55262C195A00ED7DE1 /* View Controllers */,
 				1E72FE54262C194B00ED7DE1 /* Model */,
 				1E72FE5B262C199300ED7DE1 /* Assets */,
@@ -107,13 +106,6 @@
 				1E72FF9226356D9900ED7DE1 /* UICollectionViewUtil.swift */,
 			);
 			path = "View Controllers";
-			sourceTree = "<group>";
-		};
-		1E72FE59262C197B00ED7DE1 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Views;
 			sourceTree = "<group>";
 		};
 		1E72FE5A262C198600ED7DE1 /* Storyboard */ = {
