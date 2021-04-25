@@ -25,7 +25,7 @@ class FlickrClient {
       URLQueryItem(name: "lat", value: String(latitude)),
       URLQueryItem(name: "lon", value: String(longitude)),
       URLQueryItem(name: "per_page", value: String(30)),
-      URLQueryItem(name: "radius", value: String(0.1)),
+      URLQueryItem(name: "radius", value: String(0.2)),
       URLQueryItem(name: "format", value: "json"),
       URLQueryItem(name: "nojsoncallback", value: "1")
     ]

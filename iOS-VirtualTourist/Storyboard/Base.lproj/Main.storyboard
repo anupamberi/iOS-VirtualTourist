@@ -137,6 +137,7 @@
                     <navigationItem key="navigationItem" id="Kie-Ps-kPY"/>
                     <connections>
                         <outlet property="mapView" destination="ZHI-Ct-kKj" id="sfU-Nm-mh2"/>
+                        <outlet property="newCollectionButton" destination="7bb-ZJ-f6J" id="i46-0r-Ei2"/>
                         <outlet property="photosView" destination="wN5-l1-n2v" id="O6G-aV-Kc1"/>
                     </connections>
                 </viewController>

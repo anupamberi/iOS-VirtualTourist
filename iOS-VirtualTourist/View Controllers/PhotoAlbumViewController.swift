@@ -9,24 +9,30 @@ import UIKit
 import MapKit
 import CoreData
 
+// MARK: - Shows the images downloaded from Flickr for the given selected location
 class PhotoAlbumViewController: UIViewController {
   @IBOutlet weak var mapView: MKMapView!
 
   @IBOutlet weak var photosView: UICollectionView!
 
+  @IBOutlet weak var newCollectionButton: UIButton!
+
+  // The reference pin location whose photos are to be shown
   var pin: Pin!
 
+  // Injected dataController for save/load data from persistent store
   var dataController: DataController!
-
+  // Used to synchronize data operations with collection view
   var fetchedResultsController: NSFetchedResultsController<Photo>!
-
+  // Execute block operation for updating collection view
   var blockOperation = BlockOperation()
+  // A count to keep track of the photos downloaded
+  var photosDownloadCount: Int = 0
 
   override func viewDidLoad() {
     super.viewDidLoad()
     setUpFetchedResultsController()
-    // create annotation from pin lat, lon
-    showPin()
+    setUpViews()
   }
 
   override func viewWillAppear(_ animated: Bool) {
@@ -39,7 +45,49 @@ class PhotoAlbumViewController: UIViewController {
     fetchedResultsController = nil
   }
 
-  func showPin() {
+  private func setUpFetchedResultsController() {
+    let photosRequest: NSFetchRequest<Photo> = Photo.fetchRequest()
+    let predicate = NSPredicate(format: "pin == %@", pin)
+    photosRequest.predicate = predicate
+    let sortDescriptor = NSSortDescriptor(key: "createdAt", ascending: true)
+    photosRequest.sortDescriptors = [sortDescriptor]
+
+    fetchedResultsController = NSFetchedResultsController(
+      fetchRequest: photosRequest,
+      managedObjectContext: dataController.viewContext,
+      sectionNameKeyPath: nil,
+      cacheName: nil
+    )
+    fetchedResultsController.delegate = self
+
+    do {
+      try fetchedResultsController.performFetch()
+    } catch {
+      fatalError("The photos for given pin location could not be fetched: \(error.localizedDescription)")
+    }
+  }
+
+  private func setUpViews() {
+    // create annotation from pin lat, lon
+    setUpMapView()
+    // check if there are photos for the given pin location
+    setUpPhotoAlbumView()
+  }
+
+  private func setUpPhotoAlbumView() {
+    newCollectionButton.isEnabled = false
+    if let pinPhotos = fetchedResultsController.fetchedObjects {
+      if pinPhotos.isEmpty {
+        photosView.setEmptyMessage("No photos available at the dropped location")
+      } else {
+        photosDownloadCount = 0
+        photosView.restore()
+      }
+    }
+  }
+
+  // MARK: - Show the pin location on the map from its lat and long
+  private func setUpMapView() {
     let pinLatitude = CLLocationDegrees(pin.latitude)
     let pinLongitude = CLLocationDegrees(pin.longitude)
 
@@ -56,31 +104,21 @@ class PhotoAlbumViewController: UIViewController {
     mapView.setRegion(regionToShow, animated: true)
   }
 
-  func setUpFetchedResultsController() {
-    let photosRequest: NSFetchRequest<Photo> = Photo.fetchRequest()
-    let predicate = NSPredicate(format: "pin == %@", pin)
-    photosRequest.predicate = predicate
-    let sortDescriptor = NSSortDescriptor(key: "createdAt", ascending: true)
-    photosRequest.sortDescriptors = [sortDescriptor]
-
-    fetchedResultsController = NSFetchedResultsController(fetchRequest: photosRequest, managedObjectContext: dataController.viewContext, sectionNameKeyPath: nil, cacheName: nil)
-    fetchedResultsController.delegate = self
-
-    do {
-      try fetchedResultsController.performFetch()
-    } catch {
-      fatalError("The photos for given pin location could not be fetched: \(error.localizedDescription)")
-    }
-  }
-
-  @IBAction func newCollectionTapped(_ sender: Any) {
-    // Clear photo album
+  private func clearPhotoAlbum() {
+    // Clear all photos of the given pin
     if let photos = fetchedResultsController.fetchedObjects {
       for photo in photos {
         dataController.viewContext.delete(photo)
         try? dataController.viewContext.save()
       }
     }
+  }
+
+  @IBAction func newCollectionTapped(_ sender: Any) {
+    // Disable new collection button
+    newCollectionButton.isEnabled = false
+    photosDownloadCount = 0
+    clearPhotoAlbum()
     // Set a random page number from which photos to fetch so as to avoid having same photos repeated
     let photosPageToFetch = Int.random(in: Int(pin.page)...Int(pin.pages))
     FlickrClient.getPhotosDataForLocation(
@@ -110,12 +148,8 @@ class PhotoAlbumViewController: UIViewController {
   }
 }
 
-// MARK: - Delegate for fetched results
+// MARK: - Delegate for fetched results controller that populates the collection view cells
 extension PhotoAlbumViewController: NSFetchedResultsControllerDelegate {
-  func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-    blockOperation = BlockOperation()
-  }
-
   func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
     switch type {
     case .insert:
@@ -169,6 +203,7 @@ extension PhotoAlbumViewController: UICollectionViewDataSource {
     let pinPhoto = fetchedResultsController.object(at: indexPath)
     if let photoDownloadedImage = pinPhoto.downloadedImage {
       photoAlbumCell.imageView.image = UIImage(data: photoDownloadedImage)
+      self.newCollectionButton.isEnabled = true
     } else {
       // Photo to be downloaded
       // Add placeholder image
@@ -181,6 +216,11 @@ extension PhotoAlbumViewController: UICollectionViewDataSource {
                 photoAlbumCell.imageView.image = downloadedImage
                 pinPhoto.downloadedImage = downloadedImage.jpegData(compressionQuality: 1.0)
                 try? self.dataController.viewContext.save()
+                // Check here if total images downloaded
+                self.photosDownloadCount += 1
+                if self.photosDownloadCount == self.fetchedResultsController.fetchedObjects?.count {
+                  self.newCollectionButton.isEnabled = true
+                }
               }
             }
           }
@@ -189,6 +229,7 @@ extension PhotoAlbumViewController: UICollectionViewDataSource {
     }
     return photoAlbumCell
   }
+
   func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
     let photoToDelete = fetchedResultsController.object(at: indexPath)
     dataController.viewContext.delete(photoToDelete)
@@ -196,7 +237,7 @@ extension PhotoAlbumViewController: UICollectionViewDataSource {
   }
 }
 
-// MARK: - FlowLayoutDelegate
+// MARK: - FlowLayoutDelegate for arranging photos of the collection view
 extension PhotoAlbumViewController: UICollectionViewDelegateFlowLayout {
   func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
     let itemsPerRow: CGFloat = 3
