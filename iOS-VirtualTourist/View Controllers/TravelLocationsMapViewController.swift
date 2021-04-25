@@ -28,7 +28,7 @@ class TravelLocationsMapViewController: UIViewController {
     fetchedResultsController = nil
   }
 
-  func setUpFetchedResultsController() {
+  private func setUpFetchedResultsController() {
     let lastMapLocationRequest: NSFetchRequest<Pin> = Pin.fetchRequest()
     let sortDescriptor = NSSortDescriptor(key: "createdAt", ascending: false)
     lastMapLocationRequest.sortDescriptors = [sortDescriptor]
@@ -42,40 +42,11 @@ class TravelLocationsMapViewController: UIViewController {
     }
   }
 
-  func addAnnotationGestureRecogniser() {
+  private func addAnnotationGestureRecogniser() {
     let longPressGestureRecogniser = UILongPressGestureRecognizer(target: self, action: #selector(addAnnotation(gestureRecogniser:)))
     longPressGestureRecogniser.minimumPressDuration = 1.0
     // Add gesture to map
     mapView.addGestureRecognizer(longPressGestureRecogniser)
-  }
-
-  func getLocationName() -> String {
-    var locationName: String = "New Location"
-    // Prompt user for location name
-    let alertPointName = UIAlertController(title: "New location", message: "Enter a location pin name", preferredStyle: .alert)
-    // Actions
-    let okAction = UIAlertAction(title: "OK", style: .default) { _ in
-      if let setLocationName = alertPointName.textFields?.first?.text {
-        locationName = setLocationName
-      }
-    }
-    okAction.isEnabled = false
-
-    alertPointName.addTextField { textField in
-      textField.placeholder = "New location name"
-      NotificationCenter.default.addObserver(forName: UITextField.textDidChangeNotification, object: textField, queue: .main) { _ in
-        if let text = textField.text, !text.isEmpty {
-          okAction.isEnabled = true
-        } else {
-          okAction.isEnabled = false
-        }
-      }
-    }
-
-    alertPointName.addAction(okAction)
-    present(alertPointName, animated: true, completion: nil)
-
-    return locationName
   }
 
   @objc func addAnnotation(gestureRecogniser: UIGestureRecognizer) {
@@ -93,12 +64,12 @@ class TravelLocationsMapViewController: UIViewController {
     saveAnnotation(annotationToSave: annotation)
   }
 
-  func restoreMap() {
+  private func restoreMap() {
     restoreMapRegion()
     restoreMapLocations()
   }
 
-  func restoreMapRegion() {
+  private func restoreMapRegion() {
     if let lastSavedRegion = UserDefaults.standard.dictionary(forKey: "lastShownRegion") as? [String: Double] {
       // Get latitude, longitude, latitudeDelta & longitudeDelta from save properties
       guard let savedLatitude = lastSavedRegion["latitude"] else { return }
@@ -113,7 +84,7 @@ class TravelLocationsMapViewController: UIViewController {
     }
   }
 
-  func restoreMapLocations() {
+  private func restoreMapLocations() {
     // Access fetchedObjects
     guard let locationsToRestore = fetchedResultsController.fetchedObjects else {
       return
@@ -133,7 +104,7 @@ class TravelLocationsMapViewController: UIViewController {
     }
   }
 
-  func saveAnnotation(annotationToSave: MKAnnotation) {
+  private func saveAnnotation(annotationToSave: MKAnnotation) {
     let newPin = Pin(context: dataController.viewContext)
     newPin.createdAt = Date()
     newPin.latitude = annotationToSave.coordinate.latitude
@@ -142,7 +113,7 @@ class TravelLocationsMapViewController: UIViewController {
     addPinPhotos(pin: newPin)
   }
 
-  func addPinPhotos(pin: Pin) {
+  private func addPinPhotos(pin: Pin) {
     FlickrClient.getPhotosDataForLocation(
       latitude: pin.latitude,
       longitude: pin.longitude
@@ -163,7 +134,7 @@ class TravelLocationsMapViewController: UIViewController {
         photoForPin.downloadedImage = nil
         photoForPin.pin = pin
       }
-      self.dataController.saveContext()
+      try? self.dataController.viewContext.save()
     }
   }
 }
@@ -213,21 +184,6 @@ extension TravelLocationsMapViewController: MKMapViewDelegate {
     do {
       let fetchedPins = try dataController.viewContext.fetch(pinFetchRequest)
       completion(fetchedPins.first)
-    } catch {
-      completion(nil)
-    }
-  }
-
-  func fetchPhotosForPin(referencePin: Pin, completion: @escaping ([Photo]?) -> Void) {
-    let photosRequest: NSFetchRequest<Photo> = Photo.fetchRequest()
-    let predicate = NSPredicate(format: "pin == %@", referencePin)
-    photosRequest.predicate = predicate
-    let sortDescriptor = NSSortDescriptor(key: "createdAt", ascending: true)
-    photosRequest.sortDescriptors = [sortDescriptor]
-
-    do {
-      let fetchedPhotosForPin = try dataController.viewContext.fetch(photosRequest)
-      completion(fetchedPhotosForPin)
     } catch {
       completion(nil)
     }
