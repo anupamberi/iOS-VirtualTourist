@@ -6,10 +6,11 @@
 //
 import Foundation
 import UIKit
-
+// MARK: - A class to manage all Flickr API interaction and images downloads
 class FlickrClient {
   static let apiKey = "83293ec1293edb70071f13043381c97e"
 
+  // MARK: - Returns the photos data along with the pages information
   class func getPhotosDataForLocation(
     latitude: Double,
     longitude: Double,
@@ -25,12 +26,11 @@ class FlickrClient {
       URLQueryItem(name: "lat", value: String(latitude)),
       URLQueryItem(name: "lon", value: String(longitude)),
       URLQueryItem(name: "per_page", value: String(30)),
-      URLQueryItem(name: "radius", value: String(0.2)),
+      URLQueryItem(name: "radius", value: String(0.5)),
       URLQueryItem(name: "format", value: "json"),
       URLQueryItem(name: "nojsoncallback", value: "1")
     ]
     if let fetchPhotosOnPage = fetchPhotosOnPage {
-      print(fetchPhotosOnPage)
       flickrPhotoSearchURLParams.append(URLQueryItem(name: "page", value: String(fetchPhotosOnPage)))
     }
     guard let flickrPhotosSearchURL = flickrPhotoBaseURL.appending(flickrPhotoSearchURLParams) else { return }
@@ -43,6 +43,7 @@ class FlickrClient {
     }
   }
 
+  // MARK: - Construct and return photo image URL from given photo data
   class func getPhotoImageURL(
     photoServerId: String,
     photoId: String,
@@ -52,6 +53,7 @@ class FlickrClient {
     return "https://live.staticflickr.com/\(photoServerId)/\(photoId)_\(photoSecret)_\(photoSize).jpg"
   }
 
+  // MARK: - Download the photo image given its URL
   class func downloadPhoto(
     photoImageURL: String,
     completion: @escaping(_ image: UIImage?) -> Void
