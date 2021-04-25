@@ -33,7 +33,12 @@ class TravelLocationsMapViewController: UIViewController {
     let sortDescriptor = NSSortDescriptor(key: "createdAt", ascending: false)
     lastMapLocationRequest.sortDescriptors = [sortDescriptor]
 
-    fetchedResultsController = NSFetchedResultsController(fetchRequest: lastMapLocationRequest, managedObjectContext: dataController.viewContext, sectionNameKeyPath: nil, cacheName: nil)
+    fetchedResultsController = NSFetchedResultsController(
+      fetchRequest: lastMapLocationRequest,
+      managedObjectContext: dataController.viewContext,
+      sectionNameKeyPath: nil,
+      cacheName: nil
+    )
 
     do {
       try fetchedResultsController.performFetch()
@@ -43,7 +48,10 @@ class TravelLocationsMapViewController: UIViewController {
   }
 
   private func addAnnotationGestureRecogniser() {
-    let longPressGestureRecogniser = UILongPressGestureRecognizer(target: self, action: #selector(addAnnotation(gestureRecogniser:)))
+    let longPressGestureRecogniser = UILongPressGestureRecognizer(
+      target: self,
+      action: #selector(addAnnotation(gestureRecogniser:))
+    )
     longPressGestureRecogniser.minimumPressDuration = 1.0
     // Add gesture to map
     mapView.addGestureRecognizer(longPressGestureRecogniser)
@@ -94,7 +102,10 @@ class TravelLocationsMapViewController: UIViewController {
       let locationToRestoreLongitude = CLLocationDegrees(locationToRestore.longitude)
 
       // The lat and long are used to create a CLLocationCoordinates2D instance.
-      let locationToRestoreCoordinate = CLLocationCoordinate2D(latitude: locationToRestoreLatitude, longitude: locationToRestoreLongitude)
+      let locationToRestoreCoordinate = CLLocationCoordinate2D(
+        latitude: locationToRestoreLatitude,
+        longitude: locationToRestoreLongitude
+      )
 
       let locationToRestoreAnnotation = MKPointAnnotation()
       locationToRestoreAnnotation.coordinate = locationToRestoreCoordinate
@@ -158,9 +169,9 @@ extension TravelLocationsMapViewController: MKMapViewDelegate {
     guard let annotation = view.annotation else { return }
     fetchPinFromAnnotation(annotation: annotation) { pin in
       if let fetchedPin = pin {
-        print(fetchedPin.latitude)
-        print(fetchedPin.longitude)
-        let photoAlbumViewController = self.storyboard?.instantiateViewController(identifier: "PhotoAlbumViewController") as! PhotoAlbumViewController
+        let photoAlbumViewController = self.storyboard?.instantiateViewController(
+          identifier: "PhotoAlbumViewController"
+        ) as! PhotoAlbumViewController
         photoAlbumViewController.pin = fetchedPin
         photoAlbumViewController.dataController = self.dataController
         self.navigationController?.pushViewController(photoAlbumViewController, animated: true)

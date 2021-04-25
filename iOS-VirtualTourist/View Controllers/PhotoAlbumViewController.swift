@@ -19,7 +19,6 @@ class PhotoAlbumViewController: UIViewController {
 
   // The reference pin location whose photos are to be shown
   var pin: Pin!
-
   // Injected dataController for save/load data from persistent store
   var dataController: DataController!
   // Used to synchronize data operations with collection view
@@ -119,7 +118,7 @@ class PhotoAlbumViewController: UIViewController {
     newCollectionButton.isEnabled = false
     photosDownloadCount = 0
     clearPhotoAlbum()
-    // Set a random page number from which photos to fetch so as to avoid having same photos repeated
+    // Set a random page number from which photos to fetch
     let photosPageToFetch = Int.random(in: Int(pin.page)...Int(pin.pages))
     FlickrClient.getPhotosDataForLocation(
       latitude: self.pin.latitude,
@@ -150,6 +149,7 @@ class PhotoAlbumViewController: UIViewController {
 
 // MARK: - Delegate for fetched results controller that populates the collection view cells
 extension PhotoAlbumViewController: NSFetchedResultsControllerDelegate {
+  // Implementation based on https://knowledge.udacity.com/questions/264616
   func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
     switch type {
     case .insert:
@@ -252,7 +252,10 @@ extension PhotoAlbumViewController: UICollectionViewDelegateFlowLayout {
     return UIEdgeInsets.zero
   }
 
-  func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int
+  func collectionView(
+    _ collectionView: UICollectionView,
+    layout collectionViewLayout: UICollectionViewLayout,
+    minimumLineSpacingForSectionAt section: Int
   ) -> CGFloat {
     return 3
   }
